@@ -118,7 +118,7 @@ app.post("/api/chat", auth, async (req,res) => {
         method: "POST",
         headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
         body: JSON.stringify({
-          contents: [{ role: "user", parts: [{ text: systemPrompt + "\\n\\nUser request:\\n" + message }] }],
+          contents: [{ role: "user", parts: [{ text: systemPrompt + "\n\nUser request:\n" + message }] }],
           generationConfig: { maxOutputTokens: 900, temperature: 0.2 }
         })
       });
