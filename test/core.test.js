@@ -42,5 +42,5 @@ test("mobile client contains login, project creation, and Jarves chat workflows"
   assert.match(html, /id="projectForm"/);
   assert.match(html, /id="chatForm"/);
   assert.match(client, /\/api\/projects/);
-  assert.match(client, /\/api\/chat/);
+  assert.match(client, /api\("\/chat"/);
 });
