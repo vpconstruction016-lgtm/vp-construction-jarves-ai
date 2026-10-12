@@ -33,7 +33,7 @@ test("project records and audit events use PostgreSQL", () => {
 
 test("AI key remains server-side and absent keys are not silently faked", () => {
   assert.match(server, /process\.env\.OPENAI_API_KEY/);
-  assert.match(server, /status\(503\).*OPENAI_API_KEY/s);
+  assert.match(server, /status\(503\).*GEMINI_API_KEY/s);\n  assert.match(server, /x-goog-api-key/);\n  assert.match(server, /process\.env\.GEMINI_API_KEY/);
   assert.doesNotMatch(client, /OPENAI_API_KEY|sk-[A-Za-z0-9]{12}/);
 });
 
