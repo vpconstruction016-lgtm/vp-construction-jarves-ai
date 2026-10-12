@@ -122,13 +122,15 @@ app.post("/api/chat", auth, async (req,res) => {
 app.use(express.static("public", { extensions:["html"] }));
 app.use((err,_req,res,_next) => { if(err instanceof SyntaxError) return res.status(400).json({error:"Invalid JSON"}); console.error(err); res.status(500).json({error:"Server error"}); });
 async function start() {
-  try {
-    await schema();
-    console.log("PostgreSQL schema ready");
-  } catch (err) {
-    // Keep the web process available while deployment secrets are being configured.
-    // Database-backed routes stay unavailable until DATABASE_URL is configured and the service restarts.
-    console.error("PostgreSQL not ready yet; starting in degraded mode:", err.message);
+  if (process.env.DATABASE_URL) {
+    try {
+      await schema();
+      console.log("PostgreSQL schema ready");
+    } catch (err) {
+      console.error("PostgreSQL not ready yet; starting in degraded mode:", err.message);
+    }
+  } else {
+    console.warn("DATABASE_URL is not configured; database-backed routes will be unavailable.");
   }
   app.listen(PORT, () => console.log("Jarves listening on", PORT));
 }
