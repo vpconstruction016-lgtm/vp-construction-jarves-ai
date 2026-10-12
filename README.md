@@ -5,7 +5,7 @@ Standalone responsive Node.js/Express + PostgreSQL starter for the VP Constructi
 ## Current source features
 - One-time first-owner setup and login with bcrypt password hashing and a signed HttpOnly, SameSite-strict session cookie.
 - PostgreSQL-persisted project records and audit log.
-- Server-side OpenAI Chat Completions integration. The browser never receives the API key; without an API key, Jarves returns an explicit setup error rather than fabricated AI output.
+- Server-side Gemini API (free-tier option where available) and OpenAI Chat Completions integrations. The browser never receives either API key; without a key, Jarves returns an explicit setup error rather than fabricated AI output.
 - Helmet security headers, API rate limiting, request-size limits, basic input validation and a database health endpoint.
 - Responsive mobile-first interface and Render deployment blueprint.
 
@@ -27,3 +27,4 @@ npm start
 
 ## Security status and limits
 **GitHub currently reports this repository as public.** Make it private in GitHub settings before commercial use. Never commit live API keys, passwords, production database URLs, client details or financial records. The application is a starter vertical slice, not a full QS/ERP system. Before relying on it for business records, test authorization boundaries, email verification/password reset, MFA, automated backups and restore, retention controls and production monitoring. Free hosting/database availability and retention rules can change. Construction outputs require competent professional review.
+\n\n**Free-tier privacy note:** free-tier AI provider terms may allow prompts to be used to improve provider products. Start with generic, non-confidential prompts; do not send client names, drawings, addresses, quotations, financial records, or other private information through a free-tier provider unless its current terms and your consent permit it.\n
