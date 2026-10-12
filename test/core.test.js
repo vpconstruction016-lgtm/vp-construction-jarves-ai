@@ -31,10 +31,12 @@ test("project records and audit events use PostgreSQL", () => {
   assert.match(server, /app\.post\("\/api\/projects"/);
 });
 
-test("AI key remains server-side and absent keys are not silently faked", () => {
+test("AI keys remain server-side and no-key state is explicit", () => {
   assert.match(server, /process\.env\.OPENAI_API_KEY/);
-  assert.match(server, /status\(503\).*GEMINI_API_KEY/s);\n  assert.match(server, /x-goog-api-key/);\n  assert.match(server, /process\.env\.GEMINI_API_KEY/);
-  assert.doesNotMatch(client, /OPENAI_API_KEY|sk-[A-Za-z0-9]{12}/);
+  assert.match(server, /process\.env\.GEMINI_API_KEY/);
+  assert.match(server, /x-goog-api-key/);
+  assert.match(server, /status\(503\).*GEMINI_API_KEY/s);
+  assert.doesNotMatch(client, /OPENAI_API_KEY|GEMINI_API_KEY|sk-[A-Za-z0-9]{12}/);
 });
 
 test("mobile client contains login, project creation, and Jarves chat workflows", () => {
