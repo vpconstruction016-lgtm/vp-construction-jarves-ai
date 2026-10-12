@@ -61,8 +61,8 @@ async function schema() {
 async function audit(userId, action) { await pool.query("INSERT INTO audit_log(user_id, action) VALUES($1,$2)", [userId, action]); }
 
 app.get("/api/health", async (_req,res) => {
-  try { await pool.query("SELECT 1"); res.json({ ok:true, database:"connected", aiConfigured:!!process.env.OPENAI_API_KEY }); }
-  catch { res.status(503).json({ ok:false, database:"unavailable", aiConfigured:!!process.env.OPENAI_API_KEY }); }
+  try { await pool.query("SELECT 1"); res.json({ ok:true, database:"connected", aiConfigured:!!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY) }); }
+  catch { res.status(503).json({ ok:false, database:"unavailable", aiConfigured:!!(process.env.GEMINI_API_KEY || process.env.OPENAI_API_KEY) }); }
 });
 app.get("/api/setup/status", async (_req,res) => {
   try { const r = await pool.query("SELECT COUNT(*)::int AS n FROM users"); res.json({ setupRequired:r.rows[0].n===0 }); } catch(e) { fail(res,e); }
@@ -110,14 +110,37 @@ app.post("/api/projects", auth, async (req,res) => {
 app.post("/api/chat", auth, async (req,res) => {
   const message=clean(req.body.message);
   if(!message || message.length>8000) return res.status(400).json({error:"Message must be between 1 and 8000 characters."});
-  const client=ai(); if(!client) return res.status(503).json({error:"AI is not configured. Add OPENAI_API_KEY in the hosting secret settings."});
+  const systemPrompt = "You are Jarves, the VP Construction engineering and business assistant. Help with Tamil Nadu construction estimating, BOQ, planning, site management and business workflows. State assumptions, distinguish estimates from verified measurements, and recommend qualified engineering review for structural safety. Never claim to have read data not provided.";
   try {
-    const result=await client.chat.completions.create({ model:process.env.OPENAI_MODEL||"gpt-4.1-mini", messages:[
-      {role:"system",content:"You are Jarves, the VP Construction engineering and business assistant. Help with Tamil Nadu construction estimating, BOQ, planning, site management and business workflows. State assumptions, distinguish estimates from verified measurements, and recommend qualified engineering review for structural safety. Never claim to have read data not provided."},
-      {role:"user",content:message}
-    ], max_tokens:900 });
-    res.json({reply:result.choices?.[0]?.message?.content||"No answer returned."});
-  } catch(e) { console.error("AI request failed",e.status||e.message); res.status(502).json({error:"AI request failed. Verify the server-side API key and model settings."}); }
+    if (process.env.GEMINI_API_KEY) {
+      const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+      const response = await fetch("https://generativelanguage.googleapis.com/v1beta/models/" + encodeURIComponent(model) + ":generateContent", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "x-goog-api-key": process.env.GEMINI_API_KEY },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text: systemPrompt + "\\n\\nUser request:\\n" + message }] }],
+          generationConfig: { maxOutputTokens: 900, temperature: 0.2 }
+        })
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) { console.error("Gemini API failed", response.status); return res.status(502).json({error:"Gemini request failed. Check GEMINI_API_KEY, model access and free-tier quota."}); }
+      const reply = (data.candidates?.[0]?.content?.parts || []).map(part => part.text || "").join("").trim();
+      if (!reply) return res.status(502).json({error:"The AI provider returned no text. Try again."});
+      return res.json({ reply, provider: "gemini" });
+    }
+
+    const client = ai();
+    if (!client) return res.status(503).json({error:"AI is not configured. Add GEMINI_API_KEY or OPENAI_API_KEY in the hosting secret settings."});
+    const result = await client.chat.completions.create({
+      model:process.env.OPENAI_MODEL||"gpt-4.1-mini",
+      messages:[{role:"system",content:systemPrompt},{role:"user",content:message}],
+      max_tokens:900
+    });
+    return res.json({reply:result.choices?.[0]?.message?.content||"No answer returned.", provider:"openai"});
+  } catch(e) {
+    console.error("AI request failed",e.status||e.message);
+    return res.status(502).json({error:"AI request failed. Verify the server-side API key and provider settings."});
+  }
 });
 app.use(express.static("public", { extensions:["html"] }));
 app.use((err,_req,res,_next) => { if(err instanceof SyntaxError) return res.status(400).json({error:"Invalid JSON"}); console.error(err); res.status(500).json({error:"Server error"}); });
